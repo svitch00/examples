@@ -1,0 +1,83 @@
+import httplib2
+import apiclient.discovery
+from oauth2client.service_account import ServiceAccountCredentials
+from numpy import *
+
+sh_name = 'ENTER_YOUR_NAME'
+spreadsheetId = 'ENTER_ID'
+CREDENTIALS_FILE = 'credentials_googlesheets.json' ### exported from your google api
+
+
+credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets', 
+'https://www.googleapis.com/auth/drive'])
+httpAuth = credentials.authorize(httplib2.Http())
+service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)
+
+
+def write_report(spreadsheet_id, sheet_name, dataframe):
+
+    df_columns = [np.array(dataframe.columns)]
+    df_values = dataframe.values.tolist()
+#   data = dataframe.values.astype(str).tolist()
+    data = np.concatenate((df_columns, df_values)).tolist()
+    
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    
+    sheetList = spreadsheet.get('sheets')
+
+    sheet_id = -1
+
+    for sheet in sheetList:
+        if sheet['properties']['title'] == sheet_name:
+            sheet_id = sheet['properties']['sheetId']
+
+    if sheet_id == -1:
+        
+        create_body = {"requests": [
+            {
+                "addSheet": {
+                    "properties": {
+                        "title": sheet_name,
+                        "gridProperties": {
+                            "rowCount": len(df_values),
+                            "columnCount": len(df_columns)
+                        }
+                    }
+                }
+            }
+        ]
+        }
+
+        request = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=create_body)
+        response = request.execute()
+        sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
+
+    if sheet_id > -1:
+        
+        reset_body = {"requests": [
+            {
+                "updateCells": {
+                    "range": {
+                        "sheetId": sheet_id
+                    },
+                    "fields": "userEnteredValue"
+                }
+            }
+        ]
+        }
+        
+        request = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=reset_body)
+
+        write_body = {"majorDimension": "ROWS",
+                      "values": data
+                      }
+
+        range = f"{sheet_name}!A:A";
+        service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range,
+            body=write_body,
+            valueInputOption="USER_ENTERED"
+        ).execute()
+
+    return sheet_id
