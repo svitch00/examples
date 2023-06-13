@@ -1,0 +1,39 @@
+import pandas as pd
+import folium
+
+
+data = {
+    'id': ['a', 'b', 'c'],
+    'values': [25, 30, 28],
+    'lat': [...],
+    'lon': [...]
+}
+
+df = pd.DataFrame(data)
+
+norm_values = (df['values'] - df['values'].min()) / (df['values'].max() - df['values'].min())
+
+colormap = folium.LinearColormap(
+    colors=['yellow', 'orange', 'red'],
+    vmin=0, vmax=1,
+    index=[0, 1, 2],
+    caption='values'
+)
+df = df.dropna(subset=['lat'])
+df = df.dropna(subset=['lon'])
+map = folium.Map(location=[df['lat'].mean(), df['lon'].mean()], zoom_start=2)
+
+
+for lat, lon, value, name, norm_value in zip(df['lat'], df['lon'], df['values'], df['id'], norm_values):
+    folium.CircleMarker(
+        location=[lat, lon],
+        radius=8,
+        popup=str([value, name]),
+        color='black',
+        fill=True,
+        fill_color=colormap(norm_value),
+        fill_opacity=0.7
+    ).add_to(map)
+
+
+map.save('example_map.html')
