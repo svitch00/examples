@@ -1,0 +1,49 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+
+G = nx.Graph()
+
+for index, row in df.iterrows():
+    G.add_node(row['name'])
+    if not pd.isnull(row['value_x']):
+        G.add_edge(row['name'], row['value_x'])
+        if not pd.isnull(row['Other Related names']):
+            G.add_node(row['value_x'])
+            G.add_edge(row['name'], row['Other Related names'])
+            if not pd.isnull(row['value_y']):
+                G.add_node(row['Other Related names'])
+                G.add_edge(row['Other Related names'], row['value_y'])
+
+node_colors = []
+for node in G.nodes:
+    if node in df['name'].values:
+        node_colors.append('blue')
+    elif node in df['value_x'].values:
+        node_colors.append('green')
+    elif node in df['Other Related names'].values:
+        node_colors.append('orange')
+    elif node in df['value_y'].values:
+        node_colors.append('red')
+
+pos = nx.spring_layout(G)
+nx.draw(G, pos, node_color=node_colors, with_labels=True)
+pos = nx.spring_layout(G)
+nx.draw_networkx(G, pos, node_color=node_colors, with_labels=True)
+plt.figure(9,figsize=(12,12))
+nx.draw(G,pos, node_color=node_colors, node_size=30,font_size=5, with_labels=True) 
+
+###tips
+
+# smaller nodes and fonts
+# plt.figure(2)
+# nx.draw(G,pos,node_size=60,font_size=8) 
+
+# larger figure size
+# plt.figure(3,figsize=(12,12)) 
+# nx.draw(G,pos)
+# plt.show()
+
+fig_html = mpld3.fig_to_html(plt.gcf())
+with open('example_graph.html', 'w') as f:
+    f.write(fig_html)
