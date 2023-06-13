@@ -1,0 +1,22 @@
+import networkx as nx
+from pyvis.network import Network
+import pandas as pd
+
+
+G = nx.Graph()
+
+for node in df['name']:
+    G.add_node(node, color='blue')
+
+for node in df['value']:
+    G.add_node(node, color='red')
+for i in range(len(df)):
+    G.add_edge(df.iloc[i]['name'], df.iloc[i]['value'])
+
+pos = nx.spring_layout(G)
+colors = [G.nodes[node]['color'] for node in G.nodes()]
+nx.draw(G, pos, node_color=colors)
+
+net = Network (notebook = True)
+net.from_nx(G)
+net.show("{taask}_connected_users_and_values_for_{client}.html".format(task = ticket, client = client_name))
